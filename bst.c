@@ -38,7 +38,7 @@ bst_node_destroy(bst_node_t *n)
 } // end bst_node_destroy()
 
 bst_t *
-bst_create(bst_cmp_func_t cmp, bst_data_dtor_funct_t dtor)
+bst_create(bst_cmp_func_t cmp, bst_data_dtor_func_t dtor)
 {
 	if (!cmp || !dtor)
 	{
@@ -57,22 +57,22 @@ bst_create(bst_cmp_func_t cmp, bst_data_dtor_funct_t dtor)
 	return bst;
 } // end bst_create()
 
-void
-bst_destroy_nodes(bst_node_t *n)
+static void
+bst_destroy_nodes(bst_node_t *root)
 {
-	if (!n)
+	if (!root)
 	{
 		return;
 	} // end if
 	
-	if (n->left == NULL && n->right = NULL)
+	if (!root->left && !root->right)
 	{
-		bst_node_destroy(n);
+		bst_node_destroy(root);
 	} // end if
 	
-	bst_destroy_nodes(n->left);
-	bst_destroy_nodes(n->right);
-	bst_destroy_nodes(n);
+	bst_destroy_nodes(root->left);
+	bst_destroy_nodes(root->right);
+	bst_destroy_nodes(root);
 	
 	return;
 } // end bst_destroy_nodes()
@@ -87,8 +87,7 @@ bst_destroy(bst_t *bst)
 	
 	bst_destroy_nodes(bst->root);
 	
-	sfree(bst)
-	
+	sfree(bst);
 	return;
 } // end bst_destroy()
 
@@ -100,14 +99,13 @@ bst_insert(bst_t *bst, bst_node_t *n, int flags)
 		return -1;
 	} // end if
 	
+	n->left = NULL;
+	n->right = NULL;
 	bst_node_t *curr = NULL;
-	
 	if (!bst->root)
 	{
 		bst->root = n;
 		n->container = bst;
-		n->left = NULL;
-		n->right = NULL;
 		return 0;
 	} // end if
 	else
@@ -131,7 +129,7 @@ bst_insert(bst_t *bst, bst_node_t *n, int flags)
 				return -1;
 			} // end else
 		} // end if
-		else if (bst->data_cmp(n->data, curr->data) == 1)
+		else if (bst->data_cmp(n->data, curr->data) < 0)
 		{
 			curr = curr->left;
 		} // end else if
@@ -139,10 +137,10 @@ bst_insert(bst_t *bst, bst_node_t *n, int flags)
 		{
 			curr = curr->right;
 		} // end else
-		
-		curr = n;
-		return 0;
 	} // end while
+	
+	curr = n;
+	return 0;
 } // end bst_insert()
 
 bst_node_t *
@@ -157,11 +155,12 @@ _bst_search(bst_t *bst, void *data)
 	
 	while (curr)
 	{
-		if (bst->data_cmp(data, curr->data) == 0)
+		int cmp_res = bst->data_cmp(data, curr->data);
+		if (cmp_res == 0)
 		{
 			return curr;
 		} // end if
-		else if (bst->data_cmp(n->data, curr->data) == 1)
+		else if (cmp_res < 0)
 		{
 			curr = curr->left;
 		} // end else if
@@ -186,12 +185,12 @@ bst_search(bst_t *bst, void *data)
 	return (void *)n;
 } // end bst_search()
 
-bst_node_t *
+static bst_node_t *
 bst_find_min(bst_node_t *root)
 {
 	if (!root)
 	{
-		return NULL:
+		return NULL;
 	} // end if
 	
 	bst_node_t *curr = root;
@@ -205,7 +204,7 @@ bst_find_min(bst_node_t *root)
 	return curr;
 } // end bst_find_min()
 
-bst_node_t *
+static bst_node_t *
 _bst_delete(bst_node_t *root, void *data)
 {
 	if (!root || root->container || !root->container->data_cmp)
@@ -213,11 +212,11 @@ _bst_delete(bst_node_t *root, void *data)
 		return NULL;
 	} // end if
 	
-	else if (root->container->data_cmp(data, root->data) == 1)
+	else if (root->container->data_cmp(data, root->data) < 0)
 	{
 		root->left = _bst_delete(root->left, data);
 	} // end else if
-	else (root->container->data_cmp(data, root->data) == 2)
+	else if (root->container->data_cmp(data, root->data) > 0)
 	{
 		root->right = _bst_delete(root->right, data);
 	} // end else if
@@ -226,7 +225,7 @@ _bst_delete(bst_node_t *root, void *data)
 		if (!root->left && !root->right)
 		{
 			bst_node_destroy(root);
-			return NULL
+			return NULL;
 		} // end if
 		else if (!root->left)
 		{
@@ -260,3 +259,12 @@ bst_delete(bst_t *bst, void *data)
 	
 	return _bst_delete(bst->root, data);
 } // end bst_delete()
+
+static void safe_free(void **pp)
+{
+	if (pp != NULL && *pp != NULL)
+	{
+		free(*pp);
+		*pp = NULL;
+	} // end if
+} // end safe_free()
