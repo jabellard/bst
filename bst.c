@@ -1,6 +1,14 @@
 #include <stdlib.h>
 #include "bst.h"
 
+
+
+typedef struct
+{
+	char *str;
+	int i;
+}test_data_t;
+
 bst_node_t *
 bst_node_create(void *data)
 {
@@ -38,9 +46,9 @@ bst_node_destroy(bst_node_t *n)
 } // end bst_node_destroy()
 
 bst_t *
-bst_create(bst_cmp_func_t cmp, bst_data_dtor_func_t dtor)
+bst_create(bst_cmp_func_t cmp, bst_data_ctor_func_t ctor, bst_data_dtor_func_t dtor)
 {
-	if (!cmp || !dtor)
+	if (!cmp || !ctor || !dtor)
 	{
 		return NULL;
 	} // end if
@@ -51,7 +59,10 @@ bst_create(bst_cmp_func_t cmp, bst_data_dtor_func_t dtor)
 		return NULL;
 	} // end if
 	
+	bst->root = NULL;
+	bst->size = 0;
 	bst->data_cmp = cmp;
+	bst->data_ctor = ctor;
 	bst->data_dtor = dtor;
 	
 	return bst;
@@ -92,36 +103,42 @@ bst_destroy(bst_t *bst)
 } // end bst_destroy()
 
 int
-bst_insert(bst_t *bst, bst_node_t *n, int flags)
+bst_insert(bst_t **bst, bst_node_t *n, int flags)
 {
-	if (!bst || !bst->data_cmp || !bst->data_dtor || !n)
+	if (!*bst || !(*bst)->data_cmp || !(*bst)->data_dtor || !n)
 	{
 		return -1;
 	} // end if
 	
+	printf("insert , data = %s \n", ((test_data_t *)n->data)->str);
+	
 	n->left = NULL;
 	n->right = NULL;
-	bst_node_t *curr = NULL;
-	if (!bst->root)
+	
+	bst_node_t **curr = &((*bst)->root);
+	
+	if (!(*bst)->root)
 	{
-		bst->root = n;
-		n->container = bst;
+		*curr = n;
+		n->container = *bst;
+		((*bst)->size)++;
 		return 0;
 	} // end if
 	else
 	{
-		curr = bst->root;
+		curr = &((*bst)->root);
 	} // end else
 	
-	while (curr)
+	while (*curr)
 	{
-		if (bst->data_cmp(n->data, curr->data) == 0)
+		if (((*bst)->data_cmp(n->data, (*curr)->data)) == 0) // (*curr)
 		{
+			printf("insert, equal\n");
 			if (flags == 1)
 			{
-				bst->data_dtor(curr->data);
+				(*bst)->data_dtor((*curr)->data);
 				
-				curr->data = n->data;
+				(*curr)->data = n->data;
 				return 0;
 			} // end if
 			else
@@ -129,17 +146,22 @@ bst_insert(bst_t *bst, bst_node_t *n, int flags)
 				return -1;
 			} // end else
 		} // end if
-		else if (bst->data_cmp(n->data, curr->data) < 0)
+		else if (((*bst)->data_cmp(n->data, (*curr)->data)) < 0)
 		{
-			curr = curr->left;
+			printf("insert, going left\n");
+			curr = &((*curr)->left);
 		} // end else if
 		else
 		{
-			curr = curr->right;
+			printf("insert, going rightt\n");
+			curr = &((*curr)->right);
 		} // end else
 	} // end while
 	
-	curr = n;
+	n->container = *bst;
+	*curr = n;
+	((*bst)->size)++;
+	
 	return 0;
 } // end bst_insert()
 
@@ -185,79 +207,94 @@ bst_search(bst_t *bst, void *data)
 	return (void *)n;
 } // end bst_search()
 
-static bst_node_t *
-bst_find_min(bst_node_t *root)
+static bst_node_t **
+bst_find_min(bst_node_t **root)
 {
-	if (!root)
+	if (!(*root))
 	{
 		return NULL;
 	} // end if
 	
-	bst_node_t *curr = root;
-	bst_node_t *next = root;
-	while (next)
+	bst_node_t **curr = root;
+	
+	bst_node_t **next = root;
+	
+	while (*next)
 	{
+		printf("in while\n");
 		curr = next;
-		next = next->left;
+		
+		printf("while 2 = %s \n", ((test_data_t *)(*curr)->data)->str);
+		next = &((*next)->left);
 	} // end while
 	
 	return curr;
 } // end bst_find_min()
 
 static bst_node_t *
-_bst_delete(bst_node_t *root, void *data)
+_bst_delete(bst_node_t **root, void *data)
 {
-	if (!root || root->container || !root->container->data_cmp)
+	if (!(*root) || !(*root)->container || !(*root)->container->data_cmp)
 	{
 		return NULL;
 	} // end if
 	
-	else if (root->container->data_cmp(data, root->data) < 0)
+	else if ((*root)->container->data_cmp(data, (*root)->data) < 0)
 	{
-		root->left = _bst_delete(root->left, data);
+		(*root)->left = _bst_delete(&((*root)->left), data);
 	} // end else if
-	else if (root->container->data_cmp(data, root->data) > 0)
+	else if ((*root)->container->data_cmp(data, (*root)->data) > 0)
 	{
-		root->right = _bst_delete(root->right, data);
+		(*root)->right = _bst_delete(&((*root)->right), data);
 	} // end else if
 	else
 	{
-		if (!root->left && !root->right)
+		if (!(*root)->left && !(*root)->right)
 		{
-			bst_node_destroy(root);
+			bst_node_destroy((*root));
 			return NULL;
 		} // end if
-		else if (!root->left)
+		else if (!(*root)->left)
 		{
-			bst_node_t *tmp = root;
-			root = root->right;
-			bst_node_destroy(tmp);
+			bst_node_t **tmp = (root); //c2
+			root = &((*root)->right);
+			bst_node_destroy(*tmp);
 		} // end else if
-		else if (!root->right)
+		else if (!(*root)->right)
 		{
-			bst_node_t *tmp = root;
-			root = root->left;
-			bst_node_destroy(tmp);
+			bst_node_t **tmp = (root);
+			root = &((*root)->left);
+			bst_node_destroy(*tmp);
 		} // end else if
 		else
 		{
-			bst_node_t *tmp = bst_find_min(root->right);
-			root->data = tmp->data;
-			root->right = _bst_delete(root->right, tmp->data);
+			bst_node_t **tmp = bst_find_min(&((*root)->right));
+			printf("min found = %s \n", ((test_data_t *)(*tmp)->data)->str);
+			
+			void *obj = (*root)->container->data_ctor((*tmp)->data);
+			(*root)->data = obj; 
+			(*root)->right = _bst_delete(&((*root)->right), (*tmp)->data);
 		} // end else
 	} // end else
-	return root;
+	return (*root);
 } // end _bst_delete()
 
-bst_node_t *
-bst_delete(bst_t *bst, void *data)
+int
+bst_delete(bst_t **bst, void *data)
 {
-	if (!bst || !bst->root)
+	if (!(*bst) || !(*bst)->root)
 	{
 		return NULL;
 	} // end if
 	
-	return _bst_delete(bst->root, data);
+	bst_node_t *n = _bst_delete(&((*bst)->root), data);
+	
+	if (!n)
+	{
+		return -1;
+	} // end if
+	
+	return 0;
 } // end bst_delete()
 
 static void safe_free(void **pp)
