@@ -68,14 +68,9 @@ bst_destroy_nodes(bst_node_t *root)
 		return;
 	} // end if
 	
-	if (!root->left && !root->right)
-	{
-		bst_node_destroy(root);
-	} // end if
-	
 	bst_destroy_nodes(root->left);
 	bst_destroy_nodes(root->right);
-	bst_destroy_nodes(root);
+	bst_node_destroy(root);
 	
 	return;
 } // end bst_destroy_nodes()
