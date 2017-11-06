@@ -34,6 +34,8 @@ bst_node_destroy(bst_node_t *n)
 		} // end if
 	} // end if
 	
+	sfree(n);
+	
 	return;
 } // end bst_node_destroy()
 
