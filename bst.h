@@ -52,7 +52,7 @@ bst_find_min(bst_node_t **root);
 static bst_node_t *
 _bst_delete(bst_node_t **root, void *data);
 
-int
+bst_node_t *
 bst_delete(bst_t **bst, void *data);
 
 static void safe_free(void **pp);
