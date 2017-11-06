@@ -1,1 +1,1 @@
-Binary search tree implementation
+Binary search tree.
