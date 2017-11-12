@@ -1,6 +1,20 @@
 #include <stdlib.h>
 #include "bst.h"
 
+static void
+bst_destroy_nodes(bst_node_t *root);
+
+static bst_node_t **
+bst_find_min(bst_node_t **root);
+
+static bst_node_t *
+_bst_delete(bst_node_t **root, void *data);
+
+static void
+safe_free(void **pp);
+
+#define sfree(p) safe_free((void**)&(p))
+
 bst_node_t *
 bst_node_create(void *data)
 {

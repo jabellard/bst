@@ -31,9 +31,6 @@ bst_node_destroy(bst_node_t *n);
 bst_t *
 bst_create(bst_cmp_func_t cmp, bst_data_ctor_func_t ctor, bst_data_dtor_func_t dtor);
 
-static void
-bst_destroy_nodes(bst_node_t *root);
-
 void
 bst_destroy(bst_t *bst);
 
@@ -46,16 +43,7 @@ _bst_search(bst_t *bst, void *data);
 void *
 bst_search(bst_t *bst, void *data);
 
-static bst_node_t **
-bst_find_min(bst_node_t **root);
-
-static bst_node_t *
-_bst_delete(bst_node_t **root, void *data);
-
 bst_node_t *
 bst_delete(bst_t **bst, void *data);
-
-static void safe_free(void **pp);
-#define sfree(p) safe_free((void**)&(p))
 
 #endif // BST_H
